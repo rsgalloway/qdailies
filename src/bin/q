@@ -1,0 +1,68 @@
+#!/bin/env/python
+
+##########################################################################
+#
+# Copyright 2011-2012 Enluminari Incorporated.
+#
+# NOTICE:  All information contained herein is, and remains
+# the property of Enluminari Incorporated and its suppliers,
+# if any.  The intellectual and technical concepts contained
+# herein are proprietary to Enluminari Incorporated
+# and its suppliers and may be covered by U.S. and Foreign Patents,
+# patents in process, and are protected by trade secret or copyright law.
+# Dissemination of this information or reproduction of this material
+# is strictly forbidden unless prior written permission is obtained
+# from Enluminari Incorporated.
+#
+##########################################################################
+
+import os
+import sys
+
+from PyQt4 import QtCore
+from PyQt4 import QtGui
+
+from qdailies import Q
+
+def process_args():
+    """
+    Builds options dict.
+
+    :return: ArgParse args object.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="dailies",
+        description="""Q Dailies""",
+        epilog="""
+        """,
+    )
+
+    # input options
+    input_group = parser.add_argument_group('Input')
+    input_group.add_argument('-p', '--project',
+                dest='project', action='store', required=False, type=str, default=os.environ.get('SHOW', ''),
+                help='project name')
+    input_group.add_argument('-s', '--shot',
+                dest='shot', action='store', required=False, type=str, default=os.environ.get('SHOT', ''),
+                help='shot name')
+
+    args = parser.parse_args()
+    return args
+
+def main(args):
+    app = QtGui.QApplication(sys.argv)
+    win = Q(project=args.project, shot=args.shot)
+    win.show()
+    win.raise_()
+    return app.exec_()
+
+if __name__ == '__main__':
+    try:
+        args = process_args()
+        sys.exit(main(args))
+    except Exception, e:
+        print e
+    except KeyboardInterrupt:
+        print 'Stopping...'
+        sys.exit(1)
