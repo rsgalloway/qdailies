@@ -104,6 +104,7 @@ SG_FIELD_MAP = {
     'NAME': 'code',
     'TASK': 'content',
     'SHOW': 'sg_short_name',
+    'SHOWNAME': 'name',
     'COMMENT': 'description',
     'DATE_CREATED': 'created_at',
     'TAKE_NUMBER': 'sg_take__',

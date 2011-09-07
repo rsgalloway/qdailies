@@ -27,7 +27,6 @@ from PyQt4 import uic
 
 from qdailies.lib import config
 from qdailies.lib import style
-from qdailies.lib.prefs import Prefs
 from qdailies.lib.dock import Dock
 from qdailies.lib.toolbar import ToolBar
 from qdailies.lib.threads import *
@@ -56,13 +55,11 @@ class QDailies(QtGui.QMainWindow):
         self.centralWidget().hide()
         self.statusBar().hide()
 
-        self.prefs = Prefs(read_only=False)
-
         # TODO: pass in widget to dock & toolbar init
         self.WIDGETS['tree'] = Tree(self, main=self)
         self.WIDGETS['player'] = Player(self, main=self)
+        self.WIDGETS['searchbar'] = SearchBar(self, main=self)
         self.WIDGETS['controlbar'] = ControlBar(self, main=self, player=self.WIDGETS['player'])
-        self.WIDGETS['searchbar'] = SearchBar(self)
 
         self.TOOLBARS['controlbar'] = ToolBar('controlbar', self)
         self.TOOLBARS['searchbar'] = ToolBar('searchbar', self)
@@ -85,10 +82,6 @@ class QDailies(QtGui.QMainWindow):
         self.restoreGeometry(self.settings.value('geometry').toByteArray());
         self.restoreState(self.settings.value('windowState').toByteArray());
 
-        project = kwargs.get('project', None)
-        if project:
-            self.emit(QtCore.SIGNAL('changeShow (PyQt_PyObject)'), project)
-
         self.connect(self.WIDGETS['tree'], QtCore.SIGNAL('versionAddedtoQueue (PyQt_PyObject)'), self.handleVersionAdded)
         self.connect(self.WIDGETS['tree'], QtCore.SIGNAL('versionRemovedFromQueue (PyQt_PyObject)'), self.handleVersionRemoved)
 
@@ -100,6 +93,10 @@ class QDailies(QtGui.QMainWindow):
         menu.addAction('Previous', self.togglePrev, QtGui.QKeySequence(QtCore.Qt.AltModifier + QtCore.Qt.Key_P))
 
         self.menuBar().addMenu(menu)
+
+        # set default show attribute
+        self.project = kwargs.get('project', None)
+        log.debug('setting project to: %s' % self.project)
 
     def info(self, msg="Error", title="Error"):
         log.debug(msg)
@@ -230,7 +227,7 @@ if __name__ == '__main__':
         args = process_args()
         sys.exit(main(args))
     except Exception, e:
-        print e
+        traceback.print_exc()
     except KeyboardInterrupt:
         print 'Stopping...'
         sys.exit(1)

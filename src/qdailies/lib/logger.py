@@ -8,12 +8,13 @@ import logging
 from datetime import datetime
 import config
 
-log = logging.Logger('dailies')
+log = logging.Logger('qdailies')
 log.setLevel(logging.DEBUG)
 
 # stdout
 streamHandler = logging.StreamHandler()
 streamHandler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+streamHandler.setLevel(int(os.environ.get('Q_LOG_LEVEL', logging.INFO)))
 log.addHandler(streamHandler)
 
 # log file
@@ -25,6 +26,7 @@ if not os.path.isdir(_log_dir):
         os.makedirs(_log_dir)
     except EnvironmentError, e:
         log.debug('Could not create log dir: %s\n%s' % (_log_dir, e))
-fileHandler = logging.FileHandler(os.path.join(_log_dir, 'dailies.log'))
+fileHandler = logging.FileHandler(os.path.join(_log_dir, 'qdailies.log'))
 fileHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+fileHandler.setLevel(logging.DEBUG)
 log.addHandler(fileHandler)

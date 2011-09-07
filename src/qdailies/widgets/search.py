@@ -32,10 +32,10 @@ from qdailies.lib.threads import ShotgunShowsThread, ShotgunShotsThread
 
 class SearchBar(QtGui.QWidget):
 
-    def __init__(self, parent=None, dock=None):
+    def __init__(self, parent=None, main=None):
         super(SearchBar, self).__init__(parent)
-        self.dock = dock
         uic.loadUi(os.path.join(config.UI_ROOT, 'search.ui'), self)
+        self.main = main
 
         self.setObjectName('searchBar')
         self.setStyle(QtGui.QStyleFactory.create('cleanlooks'))
@@ -62,6 +62,7 @@ class SearchBar(QtGui.QWidget):
         self.editSearch.setCompleter(self.completer)
 
     def getShows(self):
+        log.debug('getShows')
         self._showsThread = ShotgunShowsThread(self)
         self.connect(self._showsThread, QtCore.SIGNAL("shows (PyQt_PyObject)"), self.handleShows)
         self.connect(self._showsThread, QtCore.SIGNAL("error (PyQt_PyObject)"), self.handleShowsError)
@@ -69,7 +70,7 @@ class SearchBar(QtGui.QWidget):
         self.threads_queue.put(self._showsThread)
 
     def getShots(self, show):
-        log.debug('find shots: %s' % show)
+        log.debug('getShots: %s' % show)
         self._shotsThread = ShotgunShotsThread(self, self.shows.get(show))
         self.connect(self._shotsThread, QtCore.SIGNAL("shots (PyQt_PyObject)"), self.updateCompleter)
         self.connect(self._shotsThread, QtCore.SIGNAL("error (PyQt_PyObject)"), self.handleShotsError)
@@ -80,36 +81,49 @@ class SearchBar(QtGui.QWidget):
         self.shows = {}
         self.showCombo.clear()
         for show in shows:
-            self.shows[str(show.get('name'))] = show
-            self.showCombo.addItem(show.get('name'))
+            self.shows[str(show.get(config.SG_FIELD_MAP.get('SHOWNAME')))] = show
+            self.showCombo.addItem(show.get(config.SG_FIELD_MAP.get('SHOWNAME')))
+        self.handleChangeShow(os.environ.get('SHOW', self.main.project))
 
     def handleShowsError(self, error):
-        self.parent().parent().info(error)
+        self.main.info(error)
 
     def handleShotsError(self, error):
-        self.parent().parent().info(error)
+        self.main.info(error)
 
     def handleChangeShow(self, show=None):
+        log.debug('handleChangeShow: %s' % show)
         if show is None:
             show = str(self.showCombo.currentText().toAscii())
         if not show:
             return
+
         idx = self.showCombo.findText(show)
-        if idx >=0 and idx != self.showCombo.currentIndex():
+
+        if not idx:
+            for _show in self.shows.values():
+                if show == _show.get(config.SG_FIELD_MAP.get('SHOWNAME')):
+                    show = _show.get(config.SG_FIELD_MAP.get('SHOW'))
+                    idx = self.showCombo.findText(show)
+
+        log.debug('idx: %s' % idx)
+        log.debug('cindex: %s' % self.showCombo.currentIndex())
+
+        if idx >= 0 and idx != self.showCombo.currentIndex():
             self.showCombo.setCurrentIndex(idx)
+
         self.getShots(str(show))
 
     def handleFind(self, show=None, shot=None, task=None):
-        log.debug('find %s %s %s' %(show, shot, task))
+        log.debug('handleFind: %s %s %s' %(show, shot, task))
         if show is None:
             show = str(self.showCombo.currentText().toAscii())
         if shot is None:
             shot = str(self.editSearch.text().toAscii())
-        log.debug('find versions: %s' % shot)
         if not shot:
-            self.parent().parent().emit(QtCore.SIGNAL('showQueue ()'), )
+            self.main.emit(QtCore.SIGNAL('showQueue ()'), )
         else:
-            self.parent().parent().emit(QtCore.SIGNAL('findVersions (PyQt_PyObject)'), self.shots.get(shot))
+            self.main.emit(QtCore.SIGNAL('findVersions (PyQt_PyObject)'), self.shots.get(shot))
 
     def handleNew(self):
         from widgets.new import NewVersionWidget

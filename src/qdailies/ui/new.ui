@@ -722,6 +722,12 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <property name="insertPolicy">
+               <enum>QComboBox::InsertAlphabetically</enum>
+              </property>
              </widget>
             </item>
             <item row="0" column="0">
@@ -972,6 +978,12 @@
                 <width>114</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <property name="insertPolicy">
+               <enum>QComboBox::InsertAlphabetically</enum>
               </property>
              </widget>
             </item>
