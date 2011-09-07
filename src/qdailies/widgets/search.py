@@ -41,6 +41,9 @@ class SearchBar(QtGui.QWidget):
         self.setStyle(QtGui.QStyleFactory.create('cleanlooks'))
         self.setStyleSheet(style.searchbar)
 
+        self.showCombo.lineEdit().hide()
+        self.showCombo.view().setFixedWidth(180)
+
         self.shows = {}
         self.shots = {}
 
@@ -106,9 +109,6 @@ class SearchBar(QtGui.QWidget):
                     show = _show.get(config.SG_FIELD_MAP.get('SHOW'))
                     idx = self.showCombo.findText(show)
 
-        log.debug('idx: %s' % idx)
-        log.debug('cindex: %s' % self.showCombo.currentIndex())
-
         if idx >= 0 and idx != self.showCombo.currentIndex():
             self.showCombo.setCurrentIndex(idx)
 
@@ -133,7 +133,7 @@ class SearchBar(QtGui.QWidget):
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
-    win = Deck()
+    win = SearchBar()
     win.show()
     win.raise_()
     sys.exit(app.exec_())

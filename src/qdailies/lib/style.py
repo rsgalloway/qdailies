@@ -212,10 +212,13 @@ QComboBox:on {
     padding-top: 3px;
     padding-left: 4px;
 }
+QComboBox:editable {
+    width: 0px;
+}
 QComboBox QAbstractItemView {
-    background: #333;
-    color: #aaa;
-    selection-background-color: #3d3;
+    background: #eee;
+    color: #111;
+    selection-background-color: #1a1;
     border: 0px;
 }
 """ % d
