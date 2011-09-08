@@ -47,12 +47,13 @@ class Player(Phonon.VideoPlayer):
         return self.main.keyPressEvent(event)
 
     def handleLoad(self, version):
+        log.debug('handleLoad: %s' % version.left)
         self.version = version
-        log.debug(version.left)
         if not version.left or not os.path.isfile(version.left):
-            log.error('file not found: %s' % version.left)
-            return
+            log.info('File not found: %s' % version.left)
+            self.stop()
         self.load(Phonon.MediaSource(version.left))
+        self.main.emit(QtCore.SIGNAL('totalTime (PyQt_PyObject)'), self.totalTime())
 
     def handlePlay(self):
         self.play()

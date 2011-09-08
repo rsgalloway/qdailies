@@ -41,11 +41,20 @@ class ControlBar(QtGui.QWidget):
         self.seekSlider.setMediaObject(self.player.mediaObject())
 
         self.connect(self.btnPlay, QtCore.SIGNAL('pressed ()'), self.handlePlay)
+        self.connect(self.main, QtCore.SIGNAL('totalTime (PyQt_PyObject)'), self.handleTotalTime)
 
         if not self.player:
             self.btnPlay.setDisabled(True)
             self.btnPrev.setDisabled(True)
             self.btnNext.setDisabled(True)
+
+    def handleTotalTime(self, total):
+        """
+        :param total: time in milliseconds
+        """
+        seconds=(total / 1000)%60
+        minutes=(total / (1000*60))%60
+        self.labelLastFrame.setText('%02d:%02d' % (minutes, seconds))
 
     def handlePlay(self):
         if self.player.isPlaying():

@@ -252,8 +252,6 @@ class Tree(QtGui.QWidget):
 
     def handleItemDblClicked(self, item, index):
         self.playVersion(item)
-        #self.main.emit(QtCore.SIGNAL('load (PyQt_PyObject)'), item)
-        #self.main.emit(QtCore.SIGNAL('play ()'))
 
     def handleNext(self, version=None):
         self.versionsTree.selectNext()
@@ -269,11 +267,13 @@ class Tree(QtGui.QWidget):
         """
         left = version.left
         right = version.right
-        if not left or not os.path.exists(left):
-            self.info("Can't find left-eye file path: %s" % left)
+        if not left:
+            self.main.info('Movie path not found')
+        elif not os.path.exists(left):
+            self.main.info('File not found:\n%s' % left)
         else:
             if not right:
-                log.warning("Can't find right-eye")
+                log.warning('Right-eye movie path not found')
                 cmd = '%s %s' %(config.RV_PATH, left)
             else:
                 cmd = '%s [ %s %s ] -stereo %s' %(config.RV_PATH, left, right, config.RV_STEREO_MODE)

@@ -397,6 +397,8 @@ class NewVersionWidget(QtGui.QDialog):
             config.SG_FIELD_MAP.get('MOVIE_LEFT'): leftMoviePath,
         }
         updateEntity(self.sg_version_dict, params)
+        self.btnSubmit.setEnabled(True)
+
         if not self.avid.checkState():
             self.toggleLeftProgress(False)
             self.btnFindLeft.setEnabled(True)
@@ -494,6 +496,7 @@ class NewVersionWidget(QtGui.QDialog):
 
         # toggle progress bar
         self.btnFindLeft.setEnabled(False)
+        self.btnSubmit.setEnabled(False)
         self.toggleLeftProgress(True)
 
         # create take in shotgun
