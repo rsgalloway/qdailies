@@ -1,0 +1,21 @@
+GTOa (3)
+
+523ef87a906bbedb64d19e7662a261f21e3d26f1 : License (2)
+{
+    license
+    {
+        string package = "rv"
+        string version = "3.*.*"
+        string expires = "21-Sep-2011"
+        string updatesUntil = "21-Sep-2011"
+        int count = 1
+        string hostID = "C8:2A:14:1E:06:4C"
+        string issued = "22-Aug-2011"
+        string reason = "eval"
+        string licensee = "Cinderbiter-Enluminari"
+        string email = "ryan@enluminari.com"
+        string machine = "n/a"
+        string os = "any"
+        string card = "n/a"
+    }
+}

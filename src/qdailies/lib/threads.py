@@ -135,11 +135,14 @@ class ShotgunUpdateThread(QtCore.QThread, ShotgunThreadMixin):
         super(ShotgunUpdateThread, self).__init__(parent)
         self.entity = entity
         self.params = params
+        self.name = 'update'
+        self.eye = params.get('eye', 'left')
 
     def run(self):
+        self.emit(QtCore.SIGNAL('start (PyQt_PyObject)'), (self.name, self.eye))
         try:
-            updateEntity(self.entity, params)
-            self.emit(QtCore.SIGNAL('complete ()'))
+            results = updateEntity(self.entity, params)
+            self.emit(QtCore.SIGNAL('complete (PyQt_PyObject)'), results)
         except (gaierror, getaddrinfo, getdefaulttimeout):
             self.emit(QtCore.SIGNAL('error (PyQt_PyObject)'), "Can't reach shotgun")
         except Exception, e:
@@ -183,40 +186,49 @@ class ThumbThread(QtCore.QThread):
             self.emit(QtCore.SIGNAL('error (PyQt_PyObject)'), str(e))
             raise
 
-class DailyThread(QtCore.QThread):
+class MovieThread(QtCore.QThread):
     """
-    makeDaily thread, makes a movie file.
+    makeMov thread
+
+    on start, emits tuple of (name, eye)
+    on complete, emits results from running self.func
     """
-    def __init__(self, parent, path, options):
-        super(DailyThread, self).__init__(parent)
+    def __init__(self, parent, path, params):
+        super(MovieThread, self).__init__(parent)
+        self.name = 'movie'
+        self.eye = params.get('eye', 'left')
         self.path = path
-        self.options = options
+        self.params = params
+        self.func = makeMov
+
+    def isAlive(self):
+        return self.isRunning()
 
     def run(self):
+        self.emit(QtCore.SIGNAL('start (PyQt_PyObject)'), (self.name, self.eye))
         try:
             self.setPriority(QtCore.QThread.NormalPriority)
             self.setTerminationEnabled(True)
-            results = makeDaily(self.path, **self.options)
-            self.emit(QtCore.SIGNAL('complete (PyQt_PyObject)'), results)
+            results = self.func(self.path, **self.params)
         except Exception, e:
             self.emit(QtCore.SIGNAL('error (PyQt_PyObject)'), str(e))
             raise
+        self.emit(QtCore.SIGNAL('complete (PyQt_PyObject)'), results)
 
-class AvidThread(QtCore.QThread):
+class DailyThread(MovieThread):
     """
-    makeAvid thread, makes a movie file.
+    makeDaily thread
     """
-    def __init__(self, parent, path, options):
-        super(AvidThread, self).__init__(parent)
-        self.path = path
-        self.options = options
+    def __init__(self, parent, path, params):
+        super(DailyThread, self).__init__(parent, path, params)
+        self.name = 'movie'
+        self.func = makeDaily
 
-    def run(self):
-        try:
-            self.setPriority(QtCore.QThread.NormalPriority)
-            self.setTerminationEnabled(True)
-            results = makeAvid(self.path, **self.options)
-            self.emit(QtCore.SIGNAL('complete (PyQt_PyObject)'), results)
-        except Exception, e:
-            self.emit(QtCore.SIGNAL('error (PyQt_PyObject)'), str(e))
-            raise
+class AvidThread(MovieThread):
+    """
+    makeAvid thread
+    """
+    def __init__(self, parent, path, params):
+        super(AvidThread, self).__init__(parent, path, params)
+        self.name = 'frames'
+        self.func = makeAvid

@@ -17,7 +17,9 @@
 ##########################################################################
 
 import os
+import re
 import sys
+import copy
 import time
 import subprocess
 
@@ -30,6 +32,18 @@ from qdailies.lib.sglib import getSequence
 from qdailies.lib.logger import log
 from qdailies.lib import config
 from qdailies.lib import style
+
+def edit2str(edit):
+    # returns QLineEdit value as str
+    return str(edit.text().toAscii())
+
+def edit2int(edit):
+    # returns QLineEdit value as int
+    return int(edit.text().toAscii())
+
+def edit2float(edit):
+    # returns QLineEdit value as float
+    return float(edit.text().toAscii())
 
 class NewVersionWidget(QtGui.QDialog):
 
@@ -45,7 +59,7 @@ class NewVersionWidget(QtGui.QDialog):
 
         self.connect(self.btnFindLeft, QtCore.SIGNAL('pressed ()'), self.handleFindLeft)
         self.connect(self.btnFindRight, QtCore.SIGNAL('pressed ()'), self.handleFindRight)
-        self.connect(self.btnCancel, QtCore.SIGNAL('pressed ()'), self.close)
+        self.connect(self.btnCancel, QtCore.SIGNAL('pressed ()'), self.handleCancel)
         self.connect(self.btnSubmit, QtCore.SIGNAL('pressed ()'), self.handleSubmit)
         self.connect(self.slate, QtCore.SIGNAL('stateChanged (int)'), self.handleSlate)
         self.connect(self.qualitySlider, QtCore.SIGNAL('valueChanged (int)'), self.handleQualitySlider)
@@ -53,8 +67,8 @@ class NewVersionWidget(QtGui.QDialog):
         self.connect(self.showCombo, QtCore.SIGNAL('activated (const QString&)'), self.handleChangeShow)
         self.connect(self.shotCombo, QtCore.SIGNAL('activated (const QString&)'), self.handleChangeShot)
         self.connect(self.taskCombo, QtCore.SIGNAL('activated (const QString&)'), self.handleChangeTask)
-        self.connect(self.scaleCombo, QtCore.SIGNAL('currentIndexChanged (const QString&)'), self.handleChangeScale)
-        self.connect(self.avidCombo, QtCore.SIGNAL('currentIndexChanged (const QString&)'), self.handleChangeAvid)
+        self.connect(self.out1ResCombo, QtCore.SIGNAL('currentIndexChanged (const QString&)'), self.handleOut1Res)
+        self.connect(self.out2ResCombo, QtCore.SIGNAL('currentIndexChanged (const QString&)'), self.handleOut2Res)
 
         self.connect(self.btnToggleOut1, QtCore.SIGNAL('pressed ()'), self._toggleEditOut1)
         self.connect(self.btnToggleOut2, QtCore.SIGNAL('pressed ()'), self._toggleEditOut2)
@@ -71,8 +85,8 @@ class NewVersionWidget(QtGui.QDialog):
         self.quality.setValue(config.RV_QUALITY * 100)
 
         for name, res in sorted((k, (v[0], v[1])) for k, v in config.RV_SCALE_OPTIONS.items()):
-            self.scaleCombo.addItem(name)
-            self.avidCombo.addItem(name)
+            self.out1ResCombo.addItem(name)
+            self.out2ResCombo.addItem(name)
 
         # set the default crop
         self.xmin.setText(str(config.RV_CROP[0]))
@@ -80,12 +94,17 @@ class NewVersionWidget(QtGui.QDialog):
         self.xmax.setText(str(config.RV_CROP[2]))
         self.ymax.setText(str(config.RV_CROP[3]))
 
+        # set the default stereo right-eye convergence
+        self.editConvergence.setText(str(config.RV_STEREO_OFFSET))
+
         self.editOut1.setText(config.DAILIES_MOVIE_PATH)
         self.editOut2.setText(config.DAILIES_AVID_PATH)
         self._toggleEditOut1()
         self._toggleEditOut2()
 
         self.setFocus()
+        self.btnSubmit.setEnabled(False)
+        self.btnFindRight.setEnabled(False)
 
     def info(self, msg="Error", title="Error"):
         """
@@ -198,16 +217,16 @@ class NewVersionWidget(QtGui.QDialog):
     def _toggleEditOut1(self):
         hide = self.editOut1.isHidden()
         self.editOut1.setHidden(not hide)
-        self.scaleCombo.setHidden(hide)
-        self.outresX.setHidden(hide)
-        self.outresY.setHidden(hide)
+        self.out1ResCombo.setHidden(hide)
+        self.out1Width.setHidden(hide)
+        self.out1Height.setHidden(hide)
 
     def _toggleEditOut2(self):
         hide = self.editOut2.isHidden()
         self.editOut2.setHidden(not hide)
-        self.avidCombo.setHidden(hide)
-        self.avidOutresX.setHidden(hide)
-        self.avidOutresY.setHidden(hide)
+        self.out2ResCombo.setHidden(hide)
+        self.out2Width.setHidden(hide)
+        self.out2Height.setHidden(hide)
 
     def getShows(self):
         """
@@ -278,21 +297,21 @@ class NewVersionWidget(QtGui.QDialog):
         """
         pass
 
-    def handleChangeScale(self, scale):
+    def handleOut1Res(self, scale):
         """
-        Scale combo onchange handler.
+        Out1 res combo onchange handler.
         """
         xres, yres = config.RV_SCALE_OPTIONS.get(str(scale), (720, 480))
-        self.outresX.setText(str(xres))
-        self.outresY.setText(str(yres))
+        self.out1Width.setText(str(xres))
+        self.out1Height.setText(str(yres))
 
-    def handleChangeAvid(self, scale):
+    def handleOut2Res(self, scale):
         """
-        Scale combo onchange handler.
+        Out2 res combo onchange handler.
         """
         xres, yres = config.RV_SCALE_OPTIONS.get(str(scale), (720, 480))
-        self.avidOutresX.setText(str(xres))
-        self.avidOutresY.setText(str(yres))
+        self.out2Width.setText(str(xres))
+        self.out2Height.setText(str(yres))
 
     def handleSlate(self, state):
         """
@@ -318,6 +337,45 @@ class NewVersionWidget(QtGui.QDialog):
         """
         self.qualitySlider.setValue(value)
 
+    def getConvergence(self):
+        """
+        Looks for dragon take.xml file, and returns stereoConvR value.
+        Reimplement in client forks based on workflow.
+        """
+        default = config.RV_STEREO_OFFSET
+        if not self.seq_right:
+            return default
+
+        top = os.path.dirname(self.seq_right.path())
+        done = False
+        count = 0
+
+        def _getStereoConvR(path):
+            f = open(os.path.realpath(path), 'r')
+            m = re.search(r'stereoConvR="(\d+.\d+)"', f.read())
+            if m:
+                return m.groups()[0]
+            f.close()
+
+        while not done:
+            path = os.path.join(top, 'take.xml')
+            if os.path.isfile(path):
+                try:
+                    return _getStereoConvR(path)
+                except Exception, e:
+                    log.debug(str(e))
+                    return default
+                done = True
+            elif top != os.path.dirname(top):
+                top = os.path.dirname(top)
+            else:
+                done = True
+            count += 1
+            if count > 5:
+                break
+
+        return default
+
     def handleFindLeft(self):
         """
         Left button handler.
@@ -326,6 +384,8 @@ class NewVersionWidget(QtGui.QDialog):
         if not r:
             return
         self.setFileSequence(r, 'left')
+        self.btnSubmit.setEnabled(True)
+        self.btnFindRight.setEnabled(True)
 
     def handleFindRight(self):
         """
@@ -335,14 +395,7 @@ class NewVersionWidget(QtGui.QDialog):
         if not r:
             return
         self.setFileSequence(r, 'right')
-
-    def handleKillThreads(self):
-        """
-        Stops all threads.
-        """
-        for thread in self.threads:
-            if thread.isRunning():
-                thread.terminate()
+        self.editConvergence.setText(str(self.getConvergence()))
 
     def setFileSequence(self, filepath, eye='left'):
         """
@@ -384,168 +437,255 @@ class NewVersionWidget(QtGui.QDialog):
         Toggles the visibilty of the progress bar for the right-eye.
         """
         self.rightEdit.setHidden(toggle)
+        self.labelConvergence.setHidden(toggle)
+        self.editConvergence.setHidden(toggle)
         self.rightBar.setVisible(toggle)
         self.rightBar.setMinimum(0)
         self.rightBar.setMaximum(0)
 
-    def handleLeftComplete(self, leftMoviePath):
+    def handleKillThreads(self):
         """
-        Movie thread completion handler, for left-eye movie.
+        Stops all threads.
         """
-        # update shotgun with file paths
-        params = {
-            config.SG_FIELD_MAP.get('MOVIE_LEFT'): leftMoviePath,
-        }
-        updateEntity(self.sg_version_dict, params)
-        self.btnSubmit.setEnabled(True)
+        for thread in self.threads:
+            if thread.isRunning():
+                thread.terminate()
 
-        if not self.avid.checkState():
+    def handleThreadStart(self, data):
+        """
+        thread start handler
+        """
+        name, eye = data
+        log.debug('handleThreadStart: %s %s' % (name, eye))
+        self.btnSubmit.setEnabled(False)
+        self.btnFindLeft.setEnabled(False)
+        self.btnFindRight.setEnabled(False)
+        if eye == 'left':
+            self.toggleLeftProgress(True)
+        elif eye == 'right':
+            self.toggleRightProgress(True)
+
+    def handleThreadComplete(self, path):
+        """
+        Thread completion handler.
+        """
+        log.debug('handleThreadComplete: %s' % path)
+        all_done = True
+        left_done = True
+        right_done = True
+
+        for thread in self.threads:
+
+            # skip running threads
+            if thread.isAlive():
+                all_done = False
+                if thread.eye == 'left':
+                    left_done = False
+                elif thread.eye == 'right':
+                    right_done = False
+                continue
+
+            # update left eye movie path
+            elif thread.eye == 'left' and thread.name == 'movie':
+                params = {config.SG_FIELD_MAP.get('MOVIE_LEFT'): path}
+                log.debug('update left: %s' % params)
+                updateEntity(self.sg_version_dict, params)
+
+            # update right eye movie path
+            elif thread.eye == 'right' and thread.name == 'movie':
+                params = {config.SG_FIELD_MAP.get('MOVIE_RIGHT'): path}
+                log.debug('update right: %s' % params)
+                updateEntity(self.sg_version_dict, params)
+
+            # update left eye frames path
+            elif thread.eye == 'left' and thread.name == 'frames':
+                params = {config.SG_FIELD_MAP.get('FRAMES_LEFT'): path}
+                log.debug('update left: %s' % params)
+                updateEntity(self.sg_version_dict, params)
+
+            # update right eye frames path
+            elif thread.eye == 'right' and thread.name == 'frames':
+                params = {config.SG_FIELD_MAP.get('FRAMES_RIGHT'): path}
+                log.debug('update right: %s' % params)
+                updateEntity(self.sg_version_dict, params)
+
+            # remove completed threads from queue
+            self.threads.remove(thread)
+
+        if left_done:
             self.toggleLeftProgress(False)
-            self.btnFindLeft.setEnabled(True)
 
-    def handleRightComplete(self, rightMoviePath):
-        """
-        movie thread completion handler, for right-eye movie.
-        """
-        # update shotgun with file paths
-        params = {
-            config.SG_FIELD_MAP.get('MOVIE_RIGHT'): rightMoviePath,
-        }
-        updateEntity(self.sg_version_dict, params)
-        if not self.avid.checkState():
+        if right_done:
             self.toggleRightProgress(False)
+
+        if all_done:
+            self.btnSubmit.setEnabled(True)
+            self.btnFindLeft.setEnabled(True)
             self.btnFindRight.setEnabled(True)
 
-    def handleLeftAvidComplete(self, avidPath):
-        self.toggleLeftProgress(False)
-        self.btnFindLeft.setEnabled(True)
+    def addThread(self, klass, seq, params):
+        """
+        create and start a new thread
 
-    def handleRightAvidComplete(self, avidPath):
-        self.toggleRightProgress(False)
-        self.btnFindRight.setEnabled(True)
+        :param klass: threads.py thread classs
+        :param seq: file sequence arg to pass to thread
+        :param params: params dict to pass to thread
+        """
+        log.debug('addThread: %s %s %s' % (klass, seq, params))
+        if not klass or not seq:
+            return
+        thread = klass(self, seq, params)
+        self.connect(thread, QtCore.SIGNAL('start (PyQt_PyObject)'), self.handleThreadStart)
+        self.connect(thread, QtCore.SIGNAL('complete (PyQt_PyObject)'), self.handleThreadComplete)
+        self.connect(thread, QtCore.SIGNAL('error (PyQt_PyObject)'), self.handleError)
+        self.threads.append(thread)
+        thread.start()
+        return thread
+
+    def handleCancel(self):
+        """
+        Close button handler.
+        """
+        self.handleKillThreads()
+        self.close()
 
     def handleSubmit(self):
         """
-        Submit button handler. Launches threaded makeMov processes.
+        Submit button handler.
         """
-        options = {}
-
         if not self.seq_left:
             self.info('Click the Left button to choose a frame sequence')
             return
 
-        # get the shotgun entities
-        _show = self._shows.get(str(self.showCombo.currentText().toAscii()), None)
-        _shot = self._shots.get(str(self.shotCombo.currentText().toAscii()), None)
-        _task = self._tasks.get(str(self.taskCombo.currentText().toAscii()), None)
+        # initialize some vars
+        self.threads = []
+        source_left = None
+        source_right = None
 
-        if not _show or not _shot or not _task:
-            self.info('Be sure to select a show, shot and task')
+        # the shotgun versions entity dict which we will update later
+        # as the threads complete
+        self.sg_version_dict = {}
+
+        # default params
+        out1_lt_params = {'eye': 'left'}
+        out1_rt_params = {'eye': 'right'}
+        out2_lt_params = {'eye': 'left'}
+        out2_rt_params = {'eye': 'right'}
+
+        # get the shotgun entities
+        sg_show = self._shows.get(str(self.showCombo.currentText().toAscii()), None)
+        sg_shot = self._shots.get(str(self.shotCombo.currentText().toAscii()), None)
+        sg_task = self._tasks.get(str(self.taskCombo.currentText().toAscii()), None)
+
+        if not sg_show or not sg_shot:
+            self.info('Show and Shot are required arguments')
             return
 
-        options.update(show=_show.get(config.SG_FIELD_MAP.get('SHOW')))
-        options.update(shot=_shot.get(config.SG_FIELD_MAP.get('NAME')))
-        options.update(task=_task.get(config.SG_FIELD_MAP.get('TASK')))
+        # disable submit button
+        self.btnSubmit.setEnabled(False)
 
-        # left-eye
-        _name_left = str(self.leftEdit.text().toAscii())
-        _base_left = os.path.dirname(self.seq_left.path())
-        _left = os.path.join(_base_left, _name_left)
-        options.update(leftFramesPath=_left)
-        log.debug('left: %s' % _left)
+        # set some shotgun data
+        show = sg_show.get(config.SG_FIELD_MAP.get('SHOW'))
+        shot = sg_shot.get(config.SG_FIELD_MAP.get('NAME'))
+        seq = shot.split('_')[0]
+        task = sg_task.get(config.SG_FIELD_MAP.get('TASK'))
+        out1_lt_params.update(show=show, shot=shot, sequence=seq, task=task)
+        out1_rt_params.update(show=show, shot=shot, sequence=seq, task=task)
+        out2_lt_params.update(show=show, shot=shot, sequence=seq, task=task)
+        out2_rt_params.update(show=show, shot=shot, sequence=seq, task=task)
 
-        # right-eye
+        # left-eye source
+        source_left = os.path.join(os.path.dirname(self.seq_left.path()), edit2str(self.leftEdit))
+        out1_lt_params.update(leftFramesPath=source_left)
+        out2_lt_params.update(leftFramesPath=source_left)
+
+        # right-eye source
         if self.seq_right:
-            _name_right = str(self.rightEdit.text().toAscii())
-            _base_right = os.path.dirname(self.seq_right.path())
-            _right = os.path.join(_base_right, _name_right)
-            options.update(rightFramesPath=_right)
-            log.debug('right: %s' % _right)
+            source_right = os.path.join(os.path.dirname(self.seq_right.path()), edit2str(self.rightEdit))
+            out1_rt_params.update(rightFramesPath=source_right)
+            out2_rt_params.update(rightFramesPath=source_right)
 
-        # dailies options
+        # set dailies status on out1_lt
         if self.dailies.checkState():
-            options.update(status='rev')
+            out1_lt_params.update(status='rev')
+            out1_rt_params.update(status='rev')
+            out2_lt_params.update(status='rev')
+            out2_rt_params.update(status='rev')
 
         # slate options
         if self.slate.checkState():
-            options.update(slate=True, comment=str(self.comment.text().toAscii()))
+            out1_lt_params.update(slate=True, comment=edit2str(self.comment))
+            out1_rt_params.update(slate=True, comment=edit2str(self.comment))
+            out2_lt_params.update(slate=True, comment=edit2str(self.comment))
+            out2_rt_params.update(slate=True, comment=edit2str(self.comment))
 
-        # crop
+        # output resolutions
+        out1xres, out1yres = (edit2int(self.out1Width), edit2int(self.out1Height))
+        out2xres, out2yres = (edit2int(self.out2Width), edit2int(self.out2Height))
+        out1_lt_params.update(width=out1xres, height=out1yres)
+        out1_rt_params.update(width=out1xres, height=out1yres)
+        out2_lt_params.update(width=out2xres, height=out2yres)
+        out2_rt_params.update(width=out2xres, height=out2yres)
+
+        # crops
         if self.crop.checkState():
-            xmin = int(self.xmin.text().toAscii())
-            ymin = int(self.ymin.text().toAscii())
-            xmax = int(self.xmax.text().toAscii())
-            ymax = int(self.ymax.text().toAscii())
-            options.update(resize=(xmax, ymax))
-            options.update(crop=(xmin, ymin, xmax, ymax))
+            lt_crop_xmin = edit2int(self.xmin)
+            lt_crop_ymin = edit2int(self.ymin)
+            lt_crop_xmax = edit2int(self.xmax)
+            lt_crop_ymax = edit2int(self.ymax)
+            out1_lt_params.update(crop=(lt_crop_xmin, lt_crop_ymin, lt_crop_xmax, lt_crop_ymax))
+            out2_lt_params.update(crop=(lt_crop_xmin, lt_crop_ymin, lt_crop_xmax, lt_crop_ymax))
 
-        # scale
-        if self.scale.checkState():
-            options.update(width=int(self.outresX.text()))
-            options.update(height=int(self.outresY.text()))
+            # HACK: hardcoded input width, should come from source
+            offset = int(config.RV_INPUT_WIDTH * edit2float(self.editConvergence))
+            rt_crop_xmin = lt_crop_xmin + offset
+            rt_crop_ymin = lt_crop_ymin
+            rt_crop_xmax = lt_crop_xmax + offset
+            rt_crop_ymax = lt_crop_ymax
+            out1_rt_params.update(crop=(rt_crop_xmin, rt_crop_ymin, rt_crop_xmax, rt_crop_ymax))
+            out2_rt_params.update(crop=(rt_crop_xmin, rt_crop_ymin, rt_crop_xmax, rt_crop_ymax))
 
         # quality
-        options.update(quality=int(self.quality.value()))
+        quality = int(self.quality.value())
+        out1_lt_params.update(quality=quality)
+        out1_rt_params.update(quality=quality)
+        out2_lt_params.update(quality=quality)
+        out2_rt_params.update(quality=quality)
 
-        options.update(runRv=False)
+        # create take in shotgun, we need id and rev number for pathing
+        sg_params = copy.copy(out1_lt_params)
+        sg_params.update(rightFramesPath=source_right)
+        self.sg_version_dict = makeTake(**sg_params)
+        if not self.sg_version_dict:
+            self.info('Error creating take in shotgun')
+            return
+        sg_id_no = self.sg_version_dict.get('id')
+        sg_take_no = self.sg_version_dict.get(config.SG_FIELD_MAP.get('TAKE_NUMBER'))
 
-        try:
-            options.update(sequence=_shot.get(config.SG_FIELD_MAP.get('NAME')).split('_')[0])
-        except IndexError, e:
-            log.warning('sequence not found: %s' % str(e))
+        # create the thumbnail, ignoring errors
+        thumbThread = ThumbThread(self, source_left, sg_id_no)
+        thumbThread.start()
 
-        # toggle progress bar
-        self.btnFindLeft.setEnabled(False)
-        self.btnSubmit.setEnabled(False)
-        self.toggleLeftProgress(True)
+        # set version number
+        out1_lt_params.update(version=sg_take_no)
+        out1_rt_params.update(version=sg_take_no)
+        out2_lt_params.update(version=sg_take_no)
+        out2_rt_params.update(version=sg_take_no)
 
-        # create take in shotgun
-        self.sg_version_dict = makeTake(**options)
+        # set the outfile param
+        out1_lt_params.update(outfile=config.DAILIES_MOVIE_PATH % out1_lt_params)
+        out1_rt_params.update(outfile=config.DAILIES_MOVIE_PATH % out1_rt_params)
+        out2_lt_params.update(outfile=config.DAILIES_AVID_PATH % out2_lt_params)
+        out2_rt_params.update(outfile=config.DAILIES_AVID_PATH % out2_rt_params)
 
-        # thumb thread
-        self._thumbThread = ThumbThread(self, _left, self.sg_version_dict.get('id'))
-        self.connect(self._thumbThread, QtCore.SIGNAL('error (PyQt_PyObject)'), self.handleError)
-        self._thumbThread.start()
+        # create out1 threads
+        out1_lt_thread = self.addThread(DailyThread, source_left, out1_lt_params)
+        out1_rt_thread = self.addThread(DailyThread, source_right, out1_rt_params)
 
-        # update options with version number
-        options.update(version=self.sg_version_dict.get(config.SG_FIELD_MAP.get('TAKE_NUMBER')))
-
-        # left-eye thread
-        _left_params = dict(options, **{'eye': 'left'})
-        _left_params.update(outfile=str(self.editOut1.text().toAscii()) % _left_params)
-        self._leftMovieThread = DailyThread(self, _left, _left_params)
-        self.connect(self._leftMovieThread, QtCore.SIGNAL('complete (PyQt_PyObject)'), self.handleLeftComplete)
-        self.connect(self._leftMovieThread, QtCore.SIGNAL('error (PyQt_PyObject)'), self.handleError)
-        self._leftMovieThread.start()
-
-        # generate avid left-eye frames
-        if self.avid.checkState():
-            _left_avid_params = dict(options, **{'eye': 'left'})
-            _left_avid_params.update(outfile=str(self.editOut2.text().toAscii()) % _left_avid_params)
-            self._leftAvidThread = AvidThread(self, _left, _left_avid_params)
-            self.connect(self._leftAvidThread, QtCore.SIGNAL('complete (PyQt_PyObject)'), self.handleLeftAvidComplete)
-            self.connect(self._leftAvidThread, QtCore.SIGNAL('error (PyQt_PyObject)'), self.handleError)
-            self._leftAvidThread.start()
-
-        # right eye
-        if self.seq_right:
-            self.btnFindRight.setEnabled(False)
-            self.toggleRightProgress(True)
-            _right_params = dict(options, **{'eye': 'right'})
-            _right_params.update(outfile=str(self.editOut1.text().toAscii()) % _right_params)
-            self._rightMovieThread = DailyThread(self, _right, _right_params)
-            self.connect(self._rightMovieThread, QtCore.SIGNAL('complete (PyQt_PyObject)'), self.handleRightComplete)
-            self.connect(self._rightMovieThread, QtCore.SIGNAL('error (PyQt_PyObject)'), self.handleError)
-            self._rightMovieThread.start()
-
-            # generate avid right-eye frames
-            if self.avid.checkState():
-                _right_avid_params = dict(options, **{'eye': 'right'})
-                _right_avid_params.update(outfile=str(self.editOut2.text().toAscii()) % _right_avid_params)
-                self._rightAvidThread = AvidThread(self, _right, _right_avid_params)
-                self.connect(self._rightAvidThread, QtCore.SIGNAL('complete (PyQt_PyObject)'), self.handleRightAvidComplete)
-                self.connect(self._rightAvidThread, QtCore.SIGNAL('error (PyQt_PyObject)'), self.handleError)
-                self._rightAvidThread.start()
+        # create out2 threads
+        if self.out2.checkState():
+            out2_lt_thread = self.addThread(AvidThread, source_left, out2_lt_params)
+            out2_rt_thread = self.addThread(AvidThread, source_right, out2_rt_params)
 
 def main():
     app = QtGui.QApplication(sys.argv)

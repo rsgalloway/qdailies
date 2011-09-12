@@ -103,6 +103,9 @@
              <height>25</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Toggling this to on sets this daily's status for review</string>
+           </property>
            <property name="text">
             <string>Dailies</string>
            </property>
@@ -133,6 +136,9 @@
              <width>16777215</width>
              <height>25</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>Shotgun Project</string>
            </property>
            <property name="editable">
             <bool>true</bool>
@@ -165,6 +171,9 @@
              <height>25</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Shotgun Shot</string>
+           </property>
            <property name="editable">
             <bool>true</bool>
            </property>
@@ -196,6 +205,9 @@
              <height>25</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Shotgun Task</string>
+           </property>
            <property name="editable">
             <bool>true</bool>
            </property>
@@ -221,6 +233,9 @@
              <height>25</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Create and prepend a slate for this daily</string>
+           </property>
            <property name="text">
             <string>Slate</string>
            </property>
@@ -245,6 +260,9 @@
              <width>16777215</width>
              <height>25</height>
             </size>
+           </property>
+           <property name="toolTip">
+            <string>Enter dailies comments here</string>
            </property>
            <property name="text">
             <string>Slate comments here...</string>
@@ -318,6 +336,9 @@
                 <width>80</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Click to choose left frame sequence</string>
               </property>
               <property name="text">
                <string>Left</string>
@@ -394,6 +415,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Click to choose right frame sequence</string>
+              </property>
               <property name="text">
                <string>Right</string>
               </property>
@@ -415,6 +439,53 @@
                 <width>16777215</width>
                 <height>25</height>
                </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelConvergence">
+              <property name="minimumSize">
+               <size>
+                <width>55</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>55</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>Right eye offset value as percent of total width</string>
+              </property>
+              <property name="text">
+               <string>Offset</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="editConvergence">
+              <property name="minimumSize">
+               <size>
+                <width>60</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>Right eye offset value as percent of total width</string>
+              </property>
+              <property name="text">
+               <string>0.0</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -508,6 +579,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Crop left</string>
+              </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
@@ -535,6 +609,9 @@
                 <width>5000</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Crop right</string>
               </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
@@ -564,6 +641,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Crop top</string>
+              </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
@@ -592,6 +672,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Crop bottom</string>
+              </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
@@ -616,6 +699,9 @@
                 <width>80</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Crop the input source frames by the following values</string>
               </property>
               <property name="text">
                <string>Crop</string>
@@ -653,7 +739,7 @@
              <number>0</number>
             </property>
             <item row="0" column="4">
-             <widget class="QLineEdit" name="outresX">
+             <widget class="QLineEdit" name="out1Width">
               <property name="enabled">
                <bool>true</bool>
               </property>
@@ -668,6 +754,9 @@
                 <width>5000</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Out1 width</string>
               </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
@@ -681,7 +770,7 @@
              </widget>
             </item>
             <item row="0" column="5">
-             <widget class="QLineEdit" name="outresY">
+             <widget class="QLineEdit" name="out1Height">
               <property name="enabled">
                <bool>true</bool>
               </property>
@@ -697,6 +786,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Out1 height</string>
+              </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
@@ -709,7 +801,7 @@
              </widget>
             </item>
             <item row="0" column="3">
-             <widget class="QComboBox" name="scaleCombo">
+             <widget class="QComboBox" name="out1ResCombo">
               <property name="minimumSize">
                <size>
                 <width>114</width>
@@ -721,6 +813,9 @@
                 <width>114</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Out1 resolution</string>
               </property>
               <property name="editable">
                <bool>true</bool>
@@ -731,7 +826,7 @@
              </widget>
             </item>
             <item row="0" column="0">
-             <widget class="QCheckBox" name="scale">
+             <widget class="QCheckBox" name="out1">
               <property name="minimumSize">
                <size>
                 <width>80</width>
@@ -743,6 +838,9 @@
                 <width>80</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Render output 1</string>
               </property>
               <property name="text">
                <string>Out 1</string>
@@ -768,6 +866,9 @@
                 <width>15</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Path for output1</string>
               </property>
               <property name="text">
                <string/>
@@ -852,6 +953,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Quality setting</string>
+              </property>
               <property name="minimum">
                <number>1</number>
               </property>
@@ -910,7 +1014,7 @@
              <number>0</number>
             </property>
             <item row="0" column="4">
-             <widget class="QLineEdit" name="avidOutresX">
+             <widget class="QLineEdit" name="out2Width">
               <property name="enabled">
                <bool>true</bool>
               </property>
@@ -925,6 +1029,9 @@
                 <width>5000</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Out2 width</string>
               </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
@@ -938,7 +1045,7 @@
              </widget>
             </item>
             <item row="0" column="5">
-             <widget class="QLineEdit" name="avidOutresY">
+             <widget class="QLineEdit" name="out2Height">
               <property name="enabled">
                <bool>true</bool>
               </property>
@@ -954,6 +1061,9 @@
                 <height>25</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>Out2 height</string>
+              </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
@@ -966,7 +1076,7 @@
              </widget>
             </item>
             <item row="0" column="3">
-             <widget class="QComboBox" name="avidCombo">
+             <widget class="QComboBox" name="out2ResCombo">
               <property name="minimumSize">
                <size>
                 <width>114</width>
@@ -978,6 +1088,9 @@
                 <width>114</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Out2 resolution</string>
               </property>
               <property name="editable">
                <bool>true</bool>
@@ -988,7 +1101,7 @@
              </widget>
             </item>
             <item row="0" column="0">
-             <widget class="QCheckBox" name="avid">
+             <widget class="QCheckBox" name="out2">
               <property name="minimumSize">
                <size>
                 <width>80</width>
@@ -1000,6 +1113,9 @@
                 <width>80</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Render output2</string>
               </property>
               <property name="text">
                <string>Out 2</string>
@@ -1025,6 +1141,9 @@
                 <width>15</width>
                 <height>25</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>Path for output2</string>
               </property>
               <property name="text">
                <string/>
@@ -1091,6 +1210,9 @@
           <height>25</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>Submit to dailies</string>
+        </property>
         <property name="text">
          <string>Submit</string>
         </property>
@@ -1110,6 +1232,9 @@
           <height>25</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string/>
+        </property>
         <property name="text">
          <string>Cancel</string>
         </property>
@@ -1120,6 +1245,40 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>showCombo</tabstop>
+  <tabstop>shotCombo</tabstop>
+  <tabstop>taskCombo</tabstop>
+  <tabstop>comment</tabstop>
+  <tabstop>xmin</tabstop>
+  <tabstop>ymin</tabstop>
+  <tabstop>xmax</tabstop>
+  <tabstop>ymax</tabstop>
+  <tabstop>out1Width</tabstop>
+  <tabstop>out1Height</tabstop>
+  <tabstop>out2Width</tabstop>
+  <tabstop>out2Height</tabstop>
+  <tabstop>quality</tabstop>
+  <tabstop>btnSubmit</tabstop>
+  <tabstop>btnCancel</tabstop>
+  <tabstop>out2ResCombo</tabstop>
+  <tabstop>out1ResCombo</tabstop>
+  <tabstop>btnFindRight</tabstop>
+  <tabstop>btnFindLeft</tabstop>
+  <tabstop>slate</tabstop>
+  <tabstop>dailies</tabstop>
+  <tabstop>crop</tabstop>
+  <tabstop>out1</tabstop>
+  <tabstop>out2</tabstop>
+  <tabstop>editConvergence</tabstop>
+  <tabstop>editOut1</tabstop>
+  <tabstop>editOut2</tabstop>
+  <tabstop>rightEdit</tabstop>
+  <tabstop>leftEdit</tabstop>
+  <tabstop>btnToggleOut1</tabstop>
+  <tabstop>qualitySlider</tabstop>
+  <tabstop>btnToggleOut2</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

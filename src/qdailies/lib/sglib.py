@@ -120,7 +120,6 @@ def getVersions(entity, task=None):
 
     # get shotgun versions
     try:
-        log.debug('find versions: %s' % params)
         versions = sg.find('Version', params, fields=config.SG_FIELD_MAP.values())
     except gaierror, e:
         raise

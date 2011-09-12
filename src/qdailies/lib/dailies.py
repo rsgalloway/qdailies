@@ -19,6 +19,7 @@
 import os
 import sys
 import time
+import traceback
 from glob import glob
 from datetime import datetime
 
@@ -136,9 +137,7 @@ def makeTake(show, shot, **kwargs):
     if rightFramesPath:
         params.update(**{config.SG_FIELD_MAP.get('FRAMES_RIGHT'): rightFramesPath})
 
-    log.debug('create version: %s' % params)
     sg_take = sg.create('Version', params)
-    log.debug('sg take: %s' % sg_take)
 
     return sg_take
 
@@ -155,19 +154,15 @@ def makeThumb(source, frame=2, res=256):
     import tempfile
     thumb = tempfile.mkstemp(prefix='thb', suffix='.png')[1]
     cmd = "%s %s -resize %d -t %d -o %s" % (config.RV_RVIO_PATH, source, res, frame, thumb)
-    log.debug('thumb cmd: %s' % cmd)
+    log.debug('makeThumb: %s' % cmd)
     os.system(cmd)
     return thumb
 
 def makeAvid(frames, **kwargs):
-    kwargs.update(outfile=config.DAILIES_AVID_PATH % kwargs)
-    width, height = config.RV_SCALE_OPTIONS.get('hd0180', (1920, 1080))
-    kwargs.update(width=width, height=height)
     log.debug('makeAvid: %s' % kwargs)
     return makeMov(frames, **kwargs)
 
 def makeDaily(frames, **kwargs):
-    kwargs.update(outfile=config.DAILIES_MOVIE_PATH % kwargs)
     log.debug('makeDaily: %s' % kwargs)
     return makeMov(frames, **kwargs)
 
@@ -179,16 +174,16 @@ def makeMov(frames, **kwargs):
 
     :param kwargs: Supported kwargs
 
-        show       shotgun show name
-        shot       shotgun shot code
-        task       shotgun task name
-        version    version or pts number
-        width      width of mov to resize [0 (same as input)]
-        quality    compression quality 0 to 1.0 [0.95]
-        outfile    output movie file path
-        dailies    submit this movie to shotgun (bool) *
-        comment    slate comment and take description
-        frameBurn  burn frame numbers into frames (bool)
+        show         shotgun show name
+        shot         shotgun shot code
+        task         shotgun task name
+        version      version or pts number*
+        width        width of mov to resize [0 (same as input)]
+        quality      compression quality 0 to 1.0 [0.95]
+        outfile      output movie file path
+        dailies      submit this movie to shotgun (bool)*
+        comment      slate comment and take description
+        frameBurn    burn frame numbers into frames (bool)
 
     * If dailies is true, all kwargs get passed to makeTake.
     * If version is None, a version number will be auto generated.
@@ -258,12 +253,16 @@ def makeMov(frames, **kwargs):
     # check to make sure base dir exists
     _basedir = os.path.dirname(_out)
     if not os.path.isdir(_basedir):
-        log.debug('mkdir: %s' % _basedir)
-        os.makedirs(_basedir)
+        try:
+            os.makedirs(_basedir)
+        except EnvironmentError, e:
+            log.error(traceback.format_exc())
+            if not os.path.exists(_basedir):
+                return
 
     # execute the command
     if _dryRun:
-        print cmd
+        log.info(cmd)
     else:
         os.system(cmd)
 

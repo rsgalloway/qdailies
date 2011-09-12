@@ -353,6 +353,16 @@ QDialog, QComboBox, QCheckBox, QLabel {
     color: #999;
     border: 0px;
 }
+QCheckBox::indicator:checked {
+    image: url("%(gfx)s/icon.checked.png");
+    width: 15px;
+    height: 15px;
+}
+QCheckBox::indicator:unchecked {
+    image: url("%(gfx)s/icon.unchecked.png");
+    width: 15px;
+    height: 15px;
+}
 QComboBox::drop-down {
     subcontrol-origin: padding;
     subcontrol-position: top right;
@@ -412,6 +422,9 @@ QPushButton {
     border: 1px solid #222;
     border-radius: 2px;
     fond-weight: bold;
+}
+#btnFindLeft:disabled, #btnFindRight:disabled, #btnSubmit:disabled {
+    color: #666;
 }
 #btnCancel {
     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0.0 #444, stop: 1.0 #333438);
